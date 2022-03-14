@@ -6,16 +6,15 @@ WiFi enabled GPS fed NTP server based on NodeMCU Amica and Arduino framework
 
 Parts list:
 
-- Amica NodeMCU (ESP8266 / ESP-12)
+- DOIT ESP32 DEVKIT V1
 - DS3231 RTC
 - Neo-6m V2 GPS
 - 0.96" OLED Display
-- Hi-Link 5V/3W
-- Mini-360 DC-DC Buck converter
+- DFROBOT 900mA MPPT Solar Panel Controller
 - TP4056 Module
 - 18650 battery holder
-- Red, Green and Yellow LEDs
-- Resistors (150, 100 and 150 Ohms respectivelly for above leds)
+- WS2812 LED
+- Resistors as needed for LED
 - Switch key and momentary push button
 
 ---
