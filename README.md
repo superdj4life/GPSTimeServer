@@ -2,11 +2,8 @@
 
 ![ezgif com-gif-maker0](https://user-images.githubusercontent.com/38574378/117382664-69117f00-aeb5-11eb-818f-4dcee22dbfc9.gif)
 
-<<<<<<< HEAD
-Solar powered WiFi enabled GPS fed NTP server based on ESP32 Devkit and Arduino framework
-=======
-WiFi enabled GPS fed NTP server based on ESP32 Devkit and Arduino framework
->>>>>>> aeca526dd7f8d3b2517ef46013967b608b244ba0
+Solar powered WiFi enabled GPS fed NTP server 
+based on ESP32 Devkit and Arduino framework
 
 Parts list:
 
@@ -45,9 +42,7 @@ Source code based on:
 
 - http://w8bh.net/avr/clock2.pdf
 - https://forum.arduino.cc/t/ntp-time-server/192816
-- https://github.com/Montecri/GPSTimeServer
+- https://www.linkedin.com/pulse/iot-maker-tale-stratum-1-time-server-built-from-scratch-monteiro/
 
 ![sketch_bb-menor](https://user-images.githubusercontent.com/38574378/117375890-66f3f400-aea6-11eb-9389-1b9b0b01f88f.png)
 ![power supply_bb-menor](https://user-images.githubusercontent.com/38574378/117375897-6a877b00-aea6-11eb-8022-d2b06e11bd37.png)
-
-https://www.linkedin.com/pulse/iot-maker-tale-stratum-1-time-server-built-from-scratch-monteiro/
