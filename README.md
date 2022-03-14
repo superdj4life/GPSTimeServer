@@ -1,8 +1,8 @@
-# GPSTimeServer
+# GPSTimeServerSolar
 
 ![ezgif com-gif-maker0](https://user-images.githubusercontent.com/38574378/117382664-69117f00-aeb5-11eb-818f-4dcee22dbfc9.gif)
 
-WiFi enabled GPS fed NTP server based on NodeMCU Amica and Arduino framework
+Solar powered WiFi enabled GPS fed NTP server based on ESP32 Devkit and Arduino framework
 
 Parts list:
 
@@ -11,7 +11,7 @@ Parts list:
 - Neo-6m V2 GPS
 - 0.96" OLED Display
 - DFROBOT 900mA MPPT Solar Panel Controller
-- TP4056 Module
+- Solar panels 5v 500ma or larger 
 - 18650 battery holder
 - WS2812 LED
 - Resistors as needed for LED
@@ -41,6 +41,7 @@ Source code based on:
 
 - http://w8bh.net/avr/clock2.pdf
 - https://forum.arduino.cc/t/ntp-time-server/192816
+- https://github.com/Montecri/GPSTimeServer
 
 ![sketch_bb-menor](https://user-images.githubusercontent.com/38574378/117375890-66f3f400-aea6-11eb-9389-1b9b0b01f88f.png)
 ![power supply_bb-menor](https://user-images.githubusercontent.com/38574378/117375897-6a877b00-aea6-11eb-8022-d2b06e11bd37.png)
