@@ -7,6 +7,9 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 
+//fastled support
+#include <FastLED.h>
+
 // Needed for UDP functionality
 #include <WiFiUdp.h>
 // Time Server Port
@@ -26,12 +29,20 @@ WiFiUDP Udp;
 // GLOBAL DEFINES
 #define APSSID "GPSTimeServer" // Default AP SSID
 #define APPSK "thereisnospoon" // Default password
-#define PPS_PIN 19             // Pin on which 1PPS line is attached
+#define PPS_PIN 39             // Pin on which 1PPS line is attached
 #define SYNC_INTERVAL 10       // time, in seconds, between GPS sync attempts
 #define SYNC_TIMEOUT 30        // time(sec) without GPS input before error
 //#define RTC_UPDATE_INTERVAL    SECS_PER_DAY             // time(sec) between RTC SetTime events
 #define RTC_UPDATE_INTERVAL 30 // time(sec) between RTC SetTime events
 #define PPS_BLINK_INTERVAL 50  // Set time pps led should be on for blink effect
+
+//fastled defines
+#define NUM_LEDS 3
+#define DATA_PIN 3 //if using 4-pin uncomment next line
+//#define CLOCK_PIN
+
+// Define the array of leds
+CRGB leds[NUM_LEDS];
 
 #define LOCK_LED 5
 #define PPS_LED 10
@@ -149,7 +160,7 @@ void disableWifi()
 
 void processWifi()
 {
-  // Toggle WiFi on/off and corresponding LED
+  // Toggle pulse to yellow on/off and corresponding LED
   DEBUG_PRINT(F("Status Wifi: "));
   DEBUG_PRINTLN(statusWifi);
 
@@ -157,11 +168,24 @@ void processWifi()
   {
     enableWifi();
     digitalWrite(WIFI_LED, HIGH);
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    delay(500);
+    leds[0] = CRGB::Black;
+    FastLED.show();
+    delay(500);
   }
   else
   {
     disableWifi();
     digitalWrite(WIFI_LED, LOW);
+    leds[0] = CRGB::Red;
+    FastLED.show();
+    delay(500);
+    delay(500);
+    leds[0] = CRGB::Black;
+    FastLED.show();
+    delay(500);
   }
 }
 
@@ -479,6 +503,8 @@ void setup()
   RtcEeprom.Begin();
 
   InitLCD(); // initialize LCD display
+
+  FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // FastLED init for WS2812 GRB ordering is typical
 
   ss.begin(9600); // set GPS baud rate to 9600 bps
 #ifdef DEBUG
