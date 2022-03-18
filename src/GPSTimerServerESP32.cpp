@@ -26,8 +26,9 @@ WiFiUDP Udp;
 #include <EepromAT24C32.h> // We will use clock's eeprom to store config
 
 // GLOBAL DEFINES
-#define APSSID "SOMESSIDCHANE" // Default SSID for connection
-#define APPSK "SOMEPASSWORD" // Default PSK password
+#define UTC_OFFSET -6 // adjust for your timezone 
+#define APSSID "NTPSSID" // Default SSID for connection
+#define APPSK "PSKFORNTP" // Default PSK password
 #define PPS_PIN 23   
 #define SYNC_INTERVAL 10       // time, in seconds, between GPS sync attempts
 #define SYNC_TIMEOUT 30        // time(sec) without GPS input before error
@@ -135,17 +136,17 @@ void handleRoot()
 
 void enableWifi()
 {
-  // WiFi Initialization
-  /* You can remove the password parameter if you want the AP to be open. */
-  //WiFi.mode(WIFI_AP);
-  //WiFi.softAP(ssid, password);
+  // WiFi Initialization uses station mode to connect to WiFi using parameters in define
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
+  Serial.print("Connecting Wifi Please wait 5 Secs for IP");
+  delay(5000);
   Serial.println(WiFi.localIP());
-
+  //Next lines start a webserver and display IP again 
   server.on("/", handleRoot);
   server.begin();
-  Serial.println(F("HTTP server started"));
+  Serial.println(F("HTTP server started on"));
+  Serial.print(WiFi.localIP());
 }
 
 void disableWifi()
@@ -399,13 +400,17 @@ void InitLCD()
 
 void SyncWithGPS()
 {
+  //support for all varibles in GPS decode useful for debugging
+    long lat, lon;
+  float flat, flon;
   int y;
   byte h, m, s, mon, d, hundredths;
-  unsigned long age;
+  unsigned long age, date, time, chars;
+  unsigned short sentences, failed;
   gps.crack_datetime(&y, &mon, &d, &h, &m, &s, NULL, &age); // get time from GPS
   if (age < 1000 or age > 3000)                             // dont use data older than 1 second
   {
-    setTime(h, m, s, d, mon, y); // copy GPS time to system time
+    setTime(h, m, s, d, mon, y); // copy GPS time to system time 
     Serial.print("Time from GPS: ");
     Serial.print(h);
     Serial.print(":");
@@ -417,6 +422,9 @@ void SyncWithGPS()
     gpsLocked = true;                  // set flag that time is reflects GPS time
     UpdateRTC();                       // update internal RTC clock periodically
     Serial.println("GPS synchronized"); // send message to serial monitor
+    gps.get_position(&lat, &lon, &age);
+    Serial.print("Lat/Long(10^-5 deg): "); Serial.print(lat); Serial.print(", "); Serial.print(lon); 
+    Serial.println(" Fix age: "); Serial.println(age); Serial.println("ms.");
   }
   else
   {
