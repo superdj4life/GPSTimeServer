@@ -1,4 +1,3 @@
-// WiFi enabled GPS NTP server - Cristiano Monteiro <cristianomonteiro@gmail.com> - 06.May.2021
 // Based on the work of:
 // Bruce E. Hall, W8BH <bhall66@gmail.com> - http://w8bh.net
 // and
@@ -27,14 +26,20 @@ WiFiUDP Udp;
 #include <EepromAT24C32.h> // We will use clock's eeprom to store config
 
 // GLOBAL DEFINES
-#define APSSID "GPSTimeServer" // Default AP SSID
-#define APPSK "thereisnospoon" // Default password
-#define PPS_PIN 39             // Pin on which 1PPS line is attached
+#define APSSID "ntpsetup" // Default AP SSID
+#define APPSK "ntp12345678" // Default password
+#define PPS_PIN 36
 #define SYNC_INTERVAL 10       // time, in seconds, between GPS sync attempts
 #define SYNC_TIMEOUT 30        // time(sec) without GPS input before error
 //#define RTC_UPDATE_INTERVAL    SECS_PER_DAY             // time(sec) between RTC SetTime events
 #define RTC_UPDATE_INTERVAL 30 // time(sec) between RTC SetTime events
 #define PPS_BLINK_INTERVAL 50  // Set time pps led should be on for blink effect
+
+
+//RTC lib replacement 
+#include "uRTCLib.h"
+// uRTCLib rtc;
+uRTCLib rtc(0x68);
 
 //fastled defines
 #define NUM_LEDS 3
@@ -45,7 +50,7 @@ WiFiUDP Udp;
 CRGB leds[NUM_LEDS];
 
 #define LOCK_LED 5
-#define PPS_LED 10
+#define PPS_LED 10 //Removed these three pins when switching to FASTLED addressable LED
 #define WIFI_LED 11
 #define WIFI_BUTTON 12
 
@@ -61,8 +66,9 @@ EepromAt24c32<TwoWire> RtcEeprom(Wire);
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE); // OLED display library parameters
 
+
 TinyGPS gps;
-SoftwareSerial ss(1, 3); // Serial GPS handler
+SoftwareSerial ss(4, 2);   // Serial GPS handler
 time_t displayTime = 0;    // time that is currently displayed
 time_t syncTime = 0;       // time of last GPS or RTC synchronization
 time_t lastSetRTC = 0;     // time that RTC was last set
@@ -113,10 +119,10 @@ boolean KeyCheck()
   {
     if ((millis() - keytick) > DEBOUNCE_TICKS)
     {
-      DEBUG_PRINT(F("KEYTICK: "));
-      DEBUG_PRINTLN(keytick);
+      Serial.print(F("KEYTICK: "));
+      Serial.println(keytick);
       keytick = 0;
-      DEBUG_PRINTLN(F("KEYCHECK IS TRUE"));
+      Serial.println(F("KEYCHECK IS TRUE"));
       return true;
     }
   }
@@ -141,28 +147,28 @@ void enableWifi()
   WiFi.softAP(ssid, password);
 
   IPAddress myIP = WiFi.softAPIP();
-  DEBUG_PRINT(F("AP IP address: "));
-  DEBUG_PRINTLN(myIP);
+  Serial.print(F("AP IP address: "));
+  Serial.println(myIP);
   server.on("/", handleRoot);
   server.begin();
-  DEBUG_PRINTLN(F("HTTP server started"));
+  Serial.println(F("HTTP server started"));
 }
 
 void disableWifi()
 {
   server.stop();
-  DEBUG_PRINTLN(F("HTTP server stopped"));
+  Serial.println(F("HTTP server stopped"));
   WiFi.softAPdisconnect(true);
   WiFi.enableAP(false);
   WiFi.mode(WIFI_OFF);
-  DEBUG_PRINTLN(F("WiFi disabled"));
+  Serial.println(F("WiFi disabled"));
 }
 
 void processWifi()
 {
   // Toggle pulse to yellow on/off and corresponding LED
-  DEBUG_PRINT(F("Status Wifi: "));
-  DEBUG_PRINTLN(statusWifi);
+  Serial.print(F("Status Wifi: "));
+  Serial.println(statusWifi);
 
   if (statusWifi)
   {
@@ -197,25 +203,25 @@ void processWifi()
 void PrintDigit(int d)
 {
   if (d < 10)
-    DEBUG_PRINT('0');
-  DEBUG_PRINT(d);
+    Serial.print('0');
+  Serial.print(d);
 }
 
 void PrintTime(time_t t)
 // display time and date to serial monitor
 {
   PrintDigit(month(t));
-  DEBUG_PRINT("-");
+  Serial.print("-");
   PrintDigit(day(t));
-  DEBUG_PRINT("-");
+  Serial.print("-");
   PrintDigit(year(t));
-  DEBUG_PRINT(" ");
+  Serial.print(" ");
   PrintDigit(hour(t));
-  DEBUG_PRINT(":");
+  Serial.print(":");
   PrintDigit(minute(t));
-  DEBUG_PRINT(":");
+  Serial.print(":");
   PrintDigit(second(t));
-  DEBUG_PRINTLN(" UTC");
+  Serial.println(" UTC");
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -230,14 +236,14 @@ void PrintRTCstatus()
   time_t t = Now.Epoch32Time();
   if (t)
   {
-    DEBUG_PRINT("PrintRTCstatus: ");
-    DEBUG_PRINTLN("Called PrintTime from PrintRTCstatus");
+    Serial.print("PrintRTCstatus: ");
+    Serial.println("Called PrintTime from PrintRTCstatus");
 #ifdef DEBUG
     PrintTime(t);
 #endif
   }
   else
-    DEBUG_PRINTLN("ERROR: cannot read the RTC.");
+    Serial.println("ERROR: cannot read the RTC.");
 }
 
 // Update RTC from current system time
@@ -250,14 +256,14 @@ void SetRTC(time_t t)
   Rtc.SetDateTime(timeToSet);
   if (Rtc.LastError() == 0)
   {
-    DEBUG_PRINT("SetRTC: ");
-    DEBUG_PRINTLN("Called PrintTime from SetRTC");
+    Serial.print("SetRTC: ");
+    Serial.println("Called PrintTime from SetRTC");
 #ifdef DEBUG
     PrintTime(t);
 #endif
   }
   else
-    DEBUG_PRINT("ERROR: cannot set RTC time");
+    Serial.print("ERROR: cannot set RTC time");
 }
 
 void ManuallySetRTC()
@@ -282,8 +288,8 @@ void UpdateRTC()
   time_t t = now();                            // get current time
   if ((t - lastSetRTC) >= RTC_UPDATE_INTERVAL) // is it time to update RTC internal clock?
   {
-    DEBUG_PRINT("Called SetRTC from UpdateRTC with ");
-    DEBUG_PRINTLN(t);
+    Serial.print("Called SetRTC from UpdateRTC with ");
+    Serial.println(t);
     SetRTC(t);      // set RTC with current time
     lastSetRTC = t; // remember time of this event
   }
@@ -321,7 +327,7 @@ void ShowDate(time_t t)
   u8g2.setFont(u8g2_font_logisoso16_tf); // choose a suitable font
   u8g2.drawStr(18, 43, data.c_str());
 
-  DEBUG_PRINTLN("UpdateDisplay");
+  Serial.println("UpdateDisplay");
 }
 
 void ShowTime(time_t t)
@@ -406,22 +412,22 @@ void SyncWithGPS()
   if (age < 1000 or age > 3000)                             // dont use data older than 1 second
   {
     setTime(h, m, s, d, mon, y); // copy GPS time to system time
-    DEBUG_PRINT("Time from GPS: ");
-    DEBUG_PRINT(h);
-    DEBUG_PRINT(":");
-    DEBUG_PRINT(m);
-    DEBUG_PRINT(":");
-    DEBUG_PRINTLN(s);
+    Serial.print("Time from GPS: ");
+    Serial.print(h);
+    Serial.print(":");
+    Serial.print(m);
+    Serial.print(":");
+    Serial.println(s);
     adjustTime(1);                     // 1pps signal = start of next second
     syncTime = now();                  // remember time of this sync
     gpsLocked = true;                  // set flag that time is reflects GPS time
     UpdateRTC();                       // update internal RTC clock periodically
-    DEBUG_PRINTLN("GPS synchronized"); // send message to serial monitor
+    Serial.println("GPS synchronized"); // send message to serial monitor
   }
   else
   {
-    DEBUG_PRINT("Age: ");
-    DEBUG_PRINTLN(age);
+    Serial.print("Age: ");
+    Serial.println(age);
   }
 }
 
@@ -430,10 +436,10 @@ void SyncWithRTC()
   RtcDateTime time = Rtc.GetDateTime();
   long int a = time.Epoch32Time();
   setTime(a); // set system time from RTC
-  DEBUG_PRINT("SyncFromRTC: ");
-  DEBUG_PRINTLN(a);
+  Serial.print("SyncFromRTC: ");
+  Serial.println(a);
   syncTime = now();                       // and remember time of this sync event
-  DEBUG_PRINTLN("Synchronized from RTC"); // send message to serial monitor
+  Serial.println("Synchronized from RTC"); // send message to serial monitor
 }
 
 void SyncCheck()
@@ -445,15 +451,16 @@ void SyncCheck()
   unsigned long timeSinceSync = now() - syncTime; // how long has it been since last sync?
   if (pps && (timeSinceSync >= SYNC_INTERVAL))
   { // is it time to sync with GPS yet?
-    DEBUG_PRINTLN("Called SyncWithGPS from SyncCheck");
+    Serial.println("Called SyncWithGPS from SyncCheck");
     SyncWithGPS(); // yes, so attempt it.
   }
   pps = 0;                           // reset 1-pulse-per-second flag, regardless
   if (timeSinceSync >= SYNC_TIMEOUT) // GPS sync has failed
   {
     gpsLocked = false; // flag that clock is no longer in GPS sync
-    DEBUG_PRINTLN("Called SyncWithRTC from SyncCheck");
+    Serial.println("Called SyncWithRTC from SyncCheck");
     SyncWithRTC(); // sync with RTC instead
+    SyncWithGPS(); // yes, so attempt it.
   }
 }
 
@@ -465,14 +472,14 @@ void ICACHE_RAM_ATTR isr() // INTERRUPT SERVICE REQUEST
   pps = 1;                     // Flag the 1pps input signal
   digitalWrite(PPS_LED, HIGH); // Ligth up led pps monitor
   pps_blink_time = millis();   // Capture time in order to turn led off so we can get the blink effect ever x milliseconds - On loop
-  DEBUG_PRINTLN("pps");
+  Serial.println("pps");
 }
 
 // Handle button pressed interrupt
 void ICACHE_RAM_ATTR btw() // INTERRUPT SERVICE REQUEST
 {
   keytick = millis();
-  DEBUG_PRINTLN(F("BUTTON PRESSED!"));
+  Serial.println(F("BUTTON PRESSED!"));
 }
 
 void processKeypress()
@@ -483,7 +490,7 @@ void processKeypress()
     statusWifi = 1;
 
   processWifi();
-  DEBUG_PRINTLN(F("BUTTON CLICK PROCESSED!"));
+  Serial.println(F("BUTTON CLICK PROCESSED!"));
 }
 
 void setup()
@@ -498,7 +505,7 @@ void setup()
   digitalWrite(WIFI_LED, LOW);
   // if you are using ESP-01 then uncomment the line below to reset the pins to
   // the available pins for SDA, SCL
-  Wire.begin(21, 22); // due to limited pins, use pin 0 and 2 for SDA, SCL
+  Wire.begin(); // due to limited pins, use pin 0 and 2 for SDA, SCL
   Rtc.Begin();
   RtcEeprom.Begin();
 
@@ -506,32 +513,32 @@ void setup()
 
   FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // FastLED init for WS2812 GRB ordering is typical
 
-  ss.begin(9600); // set GPS baud rate to 9600 bps
-#ifdef DEBUG
-  Serial.begin(9600); // set serial monitor rate to 9600 bps
-#endif
+  ss.begin(9600); // 
+  //Serial2.begin(9600, SERIAL_8N1, 16, 17); //init hardware serial2
+//#ifdef DEBUG
+  Serial.begin(115200); // set serial monitor rate to 115200 bps
+//#endif
 
-  Serial.begin(9600);
   delay(2000);
-  DEBUG_PRINTLN("Iniciado");
+  Serial.println("Start");
 
   // Initialize RTC
   while (!Rtc.GetIsRunning())
   {
     Rtc.SetIsRunning(true);
-    DEBUG_PRINTLN(F("RTC had to be force started"));
+//  Serial.println(F("RTC had to be force started"));
   }
 
-  DEBUG_PRINTLN(F("RTC started"));
+  Serial.println(F("RTC started"));
 
   // never assume the Rtc was last configured by you, so
   // just clear them to your needed state
   Rtc.Enable32kHzPin(false);
   Rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
 
-#ifdef DEBUG
+//#ifdef DEBUG
   PrintRTCstatus(); // show RTC diagnostics
-#endif
+//#endif
   SyncWithRTC();                         // start clock with RTC data
   attachInterrupt(PPS_PIN, isr, RISING); // enable GPS 1pps interrupt input
   attachInterrupt(WIFI_BUTTON, btw, FALLING);
@@ -549,7 +556,7 @@ void FeedGpsParser()
   {
     char c = ss.read(); // read in all available chars
     gps.encode(c);      // and feed chars to GPS parser
-    //Serial.write(c); // Uncomment for some extra debug info if in doubt about GPS feed
+    ss.write(c); // Uncomment for some extra debug info if in doubt about GPS feed
   }
 }
 
@@ -565,7 +572,7 @@ void UpdateDisplay()
     ShowSyncFlag();     // show if display is in GPS sync
     u8g2.sendBuffer();  // Send new information to display
     displayTime = t;    // save current display value
-    DEBUG_PRINTLN("Called PrintTime from UpdateDisplay");
+    Serial.println("Called PrintTime from UpdateDisplay");
 #ifdef DEBUG
     PrintTime(t); // copy time to serial monitor
 #endif
@@ -680,10 +687,10 @@ void processNTP()
 
     timestamp = numberOfSecondsSince1900Epoch(year(t), month(t), day(t), hour(t), minute(t), second(t));
 
-#ifdef DEBUG
+//#ifdef DEBUG
     Serial.println(timestamp);
-    //print_date(gps);
-#endif
+//    print_date(gps);
+  
 
     tempval = timestamp;
 
@@ -759,7 +766,7 @@ void loop()
 {
   FeedGpsParser();                                    // decode incoming GPS data
   SyncCheck();                                        // synchronize to GPS or RTC
-  UpdateDisplay();                                    // if time has changed, display it
+  //UpdateDisplay();                                    // if time has changed, display it
   if (millis() - pps_blink_time > PPS_BLINK_INTERVAL) // If x milliseconds passed, then it's time to switch led off for blink effect
     digitalWrite(PPS_LED, LOW);
   if (KeyCheck()) // Malabarism to cover mechanical switch debouncing
