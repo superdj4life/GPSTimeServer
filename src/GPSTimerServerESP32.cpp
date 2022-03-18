@@ -26,20 +26,14 @@ WiFiUDP Udp;
 #include <EepromAT24C32.h> // We will use clock's eeprom to store config
 
 // GLOBAL DEFINES
-#define APSSID "ntpsetup" // Default AP SSID
-#define APPSK "ntp12345678" // Default password
-#define PPS_PIN 36
+#define APSSID "Getyourown" // Default AP SSID
+#define APPSK "oogabooga123" // Default password
+#define PPS_PIN 23   
 #define SYNC_INTERVAL 10       // time, in seconds, between GPS sync attempts
 #define SYNC_TIMEOUT 30        // time(sec) without GPS input before error
 //#define RTC_UPDATE_INTERVAL    SECS_PER_DAY             // time(sec) between RTC SetTime events
 #define RTC_UPDATE_INTERVAL 30 // time(sec) between RTC SetTime events
 #define PPS_BLINK_INTERVAL 50  // Set time pps led should be on for blink effect
-
-
-//RTC lib replacement 
-#include "uRTCLib.h"
-// uRTCLib rtc;
-uRTCLib rtc(0x68);
 
 //fastled defines
 #define NUM_LEDS 3
@@ -143,12 +137,12 @@ void enableWifi()
 {
   // WiFi Initialization
   /* You can remove the password parameter if you want the AP to be open. */
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
+  //WiFi.mode(WIFI_AP);
+  //WiFi.softAP(ssid, password);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.println(WiFi.localIP());
 
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print(F("AP IP address: "));
-  Serial.println(myIP);
   server.on("/", handleRoot);
   server.begin();
   Serial.println(F("HTTP server started"));
@@ -460,7 +454,6 @@ void SyncCheck()
     gpsLocked = false; // flag that clock is no longer in GPS sync
     Serial.println("Called SyncWithRTC from SyncCheck");
     SyncWithRTC(); // sync with RTC instead
-    SyncWithGPS(); // yes, so attempt it.
   }
 }
 
@@ -472,7 +465,7 @@ void ICACHE_RAM_ATTR isr() // INTERRUPT SERVICE REQUEST
   pps = 1;                     // Flag the 1pps input signal
   digitalWrite(PPS_LED, HIGH); // Ligth up led pps monitor
   pps_blink_time = millis();   // Capture time in order to turn led off so we can get the blink effect ever x milliseconds - On loop
-  Serial.println("pps");
+  //Serial.println("pps");     // uncomment to check PPS input  
 }
 
 // Handle button pressed interrupt
