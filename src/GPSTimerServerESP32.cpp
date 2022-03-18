@@ -26,8 +26,8 @@ WiFiUDP Udp;
 #include <EepromAT24C32.h> // We will use clock's eeprom to store config
 
 // GLOBAL DEFINES
-#define APSSID "Getyourown" // Default AP SSID
-#define APPSK "oogabooga123" // Default password
+#define APSSID "SOMESSIDCHANE" // Default SSID for connection
+#define APPSK "SOMEPASSWORD" // Default PSK password
 #define PPS_PIN 23   
 #define SYNC_INTERVAL 10       // time, in seconds, between GPS sync attempts
 #define SYNC_TIMEOUT 30        // time(sec) without GPS input before error
